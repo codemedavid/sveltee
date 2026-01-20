@@ -32,7 +32,7 @@ const Login = () => {
             {/* Background Decor */}
             <div className="bg-decor bg-orb-1"></div>
             <div className="bg-decor bg-orb-2"></div>
-            <div className="bg-logo-watermark"></div>
+
 
             <div className="login-card animate-fade-in">
                 <h1 className="login-title">

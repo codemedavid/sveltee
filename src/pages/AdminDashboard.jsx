@@ -156,7 +156,7 @@ const AdminDashboard = () => {
             <div className="bg-decor bg-orb-1"></div>
             <div className="bg-decor bg-orb-2"></div>
             <div className="bg-decor bg-orb-3"></div>
-            <div className="bg-logo-watermark"></div>
+
 
             <header className="admin-header animate-fade-in">
                 <h1 className="admin-title">Admin Dashboard</h1>

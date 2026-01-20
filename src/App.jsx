@@ -51,7 +51,7 @@ const Home = () => {
       <div className="bg-decor bg-orb-1"></div>
       <div className="bg-decor bg-orb-2"></div>
       <div className="bg-decor bg-orb-3"></div>
-      <div className="bg-logo-watermark"></div>
+
 
 
 
@@ -67,10 +67,10 @@ const Home = () => {
         </div>
 
         <h1 className="brand-name">
-          CLO Peptides
+          SVELTEE
         </h1>
         <p className="brand-tagline">
-          Peptide Enthusiast, USER & PROVIDES
+          Where confidence begins
         </p>
       </header>
 

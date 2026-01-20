@@ -8,7 +8,7 @@ const Footer = () => {
                 Science meets beauty
             </p>
             <p className="footer-copyright">
-                © {new Date().getFullYear()} PAURE
+                © {new Date().getFullYear()} SVELTEE
             </p>
         </footer>
     );
