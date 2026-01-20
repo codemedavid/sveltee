@@ -1,11 +1,13 @@
--- Create table if it doesn't exist
 create table if not exists links (
   id uuid default gen_random_uuid() primary key,
   created_at timestamp with time zone default timezone('utc'::text, now()) not null,
   text text not null,
   href text not null,
   icon text,
-  "order" integer default 0
+  "order" integer default 0,
+  subtext text,
+  variant text default 'generic',
+  active boolean default true
 );
 
 -- Enable RLS
@@ -34,13 +36,13 @@ create policy "Public can manage links"
 do $$
 begin
   if not exists (select 1 from links) then
-    insert into links (text, href, icon, "order") values
-    ('Price List', '#', '💰', 1),
-    ('WhatsApp', '#', '💬', 2),
-    ('COA', '#', '📄', 3),
-    ('Instruction & Guides', '#', '📘', 4),
-    ('Tiktok', '#', '🎵', 5),
-    ('Instagram', '#', '📷', 6),
-    ('Thread', '#', '🧵', 7);
+    insert into links (text, href, icon, "order", variant, subtext, active) values
+    ('Price List', '#', '💰', 1, 'verified', 'View our latest prices', true),
+    ('WhatsApp', '#', '💬', 2, 'social', 'Chat with us', true),
+    ('COA', '#', '📄', 3, 'generic', 'Certificate of Analysis', true),
+    ('Instruction & Guides', '#', '📘', 4, 'generic', 'How to use our products', true),
+    ('Tiktok', '#', '🎵', 5, 'social', 'Follow us on TikTok', true),
+    ('Instagram', '#', '📷', 6, 'social', 'Check our photos', true),
+    ('Thread', '#', '🧵', 7, 'social', 'Join the conversation', true);
   end if;
 end $$;

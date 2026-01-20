@@ -7,7 +7,14 @@ import './AdminDashboard.css';
 const AdminDashboard = () => {
     const [links, setLinks] = useState([]);
     const [loading, setLoading] = useState(true);
-    const [newLink, setNewLink] = useState({ text: '', href: '', icon: '' });
+    const [newLink, setNewLink] = useState({
+        text: '',
+        href: '',
+        icon: '',
+        subtext: '',
+        variant: 'generic',
+        active: true
+    });
     const [error, setError] = useState(null);
     const [isAdding, setIsAdding] = useState(false);
     const navigate = useNavigate();
@@ -49,10 +56,20 @@ const AdminDashboard = () => {
             if (!data || data.length === 0) {
                 // If DB is empty, Show Defaults IMMEDIATELY so user sees buttons
                 console.log('DB empty. Showing defaults.');
-                setLinks(defaults);
+
+                // Add default properties to defaults if missing
+                const enrichedDefaults = defaults.map(d => ({
+                    ...d,
+                    variant: 'generic',
+                    subtext: '',
+                    active: true,
+                    ...d // preserve existing
+                }));
+
+                setLinks(enrichedDefaults);
 
                 // Try to persist them in background
-                const { error: insertError } = await supabase.from('links').insert(defaults);
+                const { error: insertError } = await supabase.from('links').insert(enrichedDefaults);
                 if (insertError) {
                     console.error('Failed to auto-seed DB:', insertError);
                     // We don't block the UI, just log it. 
@@ -69,7 +86,12 @@ const AdminDashboard = () => {
             console.error('Error fetching links:', err);
             // On error, ALSO show defaults so admin isn't blank
             setLinks(defaults);
-            setError('Database connection issue. Showing default links (unsaved).');
+
+            if (err.message && err.message.includes('relation "public.links" does not exist')) {
+                setError('CRITICAL: Database table "links" is missing. Please run the SUPABASE_SETUP.sql script in your Supabase Dashboard SQL Editor.');
+            } else {
+                setError('Database connection issue. Showing default links (unsaved).');
+            }
         } finally {
             setLoading(false);
         }
@@ -105,7 +127,15 @@ const AdminDashboard = () => {
             if (error) throw error;
 
             setLinks([...links, data[0]]);
-            setNewLink({ text: '', href: '', icon: '' });
+            setLinks([...links, data[0]]);
+            setNewLink({
+                text: '',
+                href: '',
+                icon: '',
+                subtext: '',
+                variant: 'generic',
+                active: true
+            });
             setIsAdding(false);
         } catch (error) {
             alert('Error adding link: ' + error.message);
@@ -126,6 +156,7 @@ const AdminDashboard = () => {
             <div className="bg-decor bg-orb-1"></div>
             <div className="bg-decor bg-orb-2"></div>
             <div className="bg-decor bg-orb-3"></div>
+            <div className="bg-logo-watermark"></div>
 
             <header className="admin-header animate-fade-in">
                 <h1 className="admin-title">Admin Dashboard</h1>
@@ -144,7 +175,12 @@ const AdminDashboard = () => {
                         <div className="link-info">
                             <span className="link-icon">{link.icon}</span>
                             <div className="link-details">
-                                <p className="link-text">{link.text}</p>
+                                <p className="link-text">
+                                    {link.text}
+                                    {link.variant === 'verified' && <span className="ml-2 text-xs bg-blue-100 text-blue-800 px-1 rounded">✓ Verified</span>}
+                                    {!link.active && <span className="ml-2 text-xs bg-gray-100 text-gray-500 px-1 rounded">Inactive</span>}
+                                </p>
+                                {link.subtext && <p className="text-xs text-gray-500">{link.subtext}</p>}
                                 <p className="link-url">{link.href}</p>
                             </div>
                         </div>
@@ -210,6 +246,23 @@ const AdminDashboard = () => {
                             value={newLink.icon}
                             onChange={(e) => setNewLink({ ...newLink, icon: e.target.value })}
                         />
+                        <input
+                            type="text"
+                            placeholder="Subtext (Optional description)"
+                            className="admin-input"
+                            value={newLink.subtext}
+                            onChange={(e) => setNewLink({ ...newLink, subtext: e.target.value })}
+                        />
+                        <select
+                            className="admin-input"
+                            value={newLink.variant}
+                            onChange={(e) => setNewLink({ ...newLink, variant: e.target.value })}
+                        >
+                            <option value="generic">Generic Button</option>
+                            <option value="verified">Verified (Blue Check)</option>
+                            <option value="social">Social Media</option>
+                            <option value="highlight">Highlight</option>
+                        </select>
                         <div className="form-actions">
                             <button type="submit" className="save-button">
                                 Save Link
