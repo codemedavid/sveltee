@@ -17,6 +17,7 @@ const AdminDashboard = () => {
     });
     const [error, setError] = useState(null);
     const [isAdding, setIsAdding] = useState(false);
+    const [editingId, setEditingId] = useState(null);
     const navigate = useNavigate();
 
     useEffect(() => {
@@ -114,20 +115,59 @@ const AdminDashboard = () => {
         }
     };
 
-    const handleAddLink = async (e) => {
+    const handleEdit = (link) => {
+        setNewLink({
+            text: link.text,
+            href: link.href,
+            icon: link.icon,
+            subtext: link.subtext || '',
+            variant: link.variant || 'generic',
+            active: link.active !== false
+        });
+        setEditingId(link.id);
+        setIsAdding(true);
+        window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
+    };
+
+    const handleCancelEdit = () => {
+        setIsAdding(false);
+        setEditingId(null);
+        setNewLink({
+            text: '',
+            href: '',
+            icon: '',
+            subtext: '',
+            variant: 'generic',
+            active: true
+        });
+    };
+
+    const handleSaveLink = async (e) => {
         e.preventDefault();
         try {
-            const maxOrder = links.length > 0 ? Math.max(...links.map(l => l.order || 0)) : -1;
+            if (editingId) {
+                // UPDATE existing link
+                const { error } = await supabase
+                    .from('links')
+                    .update(newLink)
+                    .eq('id', editingId);
 
-            const { data, error } = await supabase
-                .from('links')
-                .insert([{ ...newLink, order: maxOrder + 1 }])
-                .select();
+                if (error) throw error;
 
-            if (error) throw error;
+                setLinks(links.map(l => (l.id === editingId ? { ...l, ...newLink } : l)));
+            } else {
+                // INSERT new link
+                const maxOrder = links.length > 0 ? Math.max(...links.map(l => l.order || 0)) : -1;
+                const { data, error } = await supabase
+                    .from('links')
+                    .insert([{ ...newLink, order: maxOrder + 1 }])
+                    .select();
 
-            setLinks([...links, data[0]]);
-            setLinks([...links, data[0]]);
+                if (error) throw error;
+                setLinks([...links, data[0]]);
+            }
+
+            // Reset Form and State 
             setNewLink({
                 text: '',
                 href: '',
@@ -137,8 +177,9 @@ const AdminDashboard = () => {
                 active: true
             });
             setIsAdding(false);
+            setEditingId(null);
         } catch (error) {
-            alert('Error adding link: ' + error.message);
+            alert('Error saving link: ' + error.message);
         }
     };
 
@@ -185,13 +226,22 @@ const AdminDashboard = () => {
                             </div>
                         </div>
 
-                        <button
-                            onClick={() => handleDelete(link.id)}
-                            className="delete-button"
-                            title="Delete Link"
-                        >
-                            <Trash2 size={18} />
-                        </button>
+                        <div className="flex gap-2">
+                            <button
+                                onClick={() => handleEdit(link)}
+                                className="edit-button text-blue-500 hover:bg-blue-50 p-2 rounded transition-colors"
+                                title="Edit Link"
+                            >
+                                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"></path></svg>
+                            </button>
+                            <button
+                                onClick={() => handleDelete(link.id)}
+                                className="delete-button"
+                                title="Delete Link"
+                            >
+                                <Trash2 size={18} />
+                            </button>
+                        </div>
                     </div>
                 ))}
 
@@ -218,73 +268,78 @@ const AdminDashboard = () => {
                 )}
             </div>
 
-            {isAdding ? (
-                <form onSubmit={handleAddLink} className="add-link-form">
-                    <h3 className="form-title">Add New Link</h3>
-                    <div className="form-group">
-                        <input
-                            type="text"
-                            placeholder="Button Text (e.g. Shop Peptides)"
-                            className="admin-input"
-                            value={newLink.text}
-                            onChange={(e) => setNewLink({ ...newLink, text: e.target.value })}
-                            required
-                            autoFocus
-                        />
-                        <input
-                            type="url"
-                            placeholder="URL (https://...)"
-                            className="admin-input"
-                            value={newLink.href}
-                            onChange={(e) => setNewLink({ ...newLink, href: e.target.value })}
-                            required
-                        />
-                        <input
-                            type="text"
-                            placeholder="Icon Emoji (e.g. 🛒)"
-                            className="admin-input"
-                            value={newLink.icon}
-                            onChange={(e) => setNewLink({ ...newLink, icon: e.target.value })}
-                        />
-                        <input
-                            type="text"
-                            placeholder="Subtext (Optional description)"
-                            className="admin-input"
-                            value={newLink.subtext}
-                            onChange={(e) => setNewLink({ ...newLink, subtext: e.target.value })}
-                        />
-                        <select
-                            className="admin-input"
-                            value={newLink.variant}
-                            onChange={(e) => setNewLink({ ...newLink, variant: e.target.value })}
-                        >
-                            <option value="generic">Generic Button</option>
-                            <option value="verified">Verified (Blue Check)</option>
-                            <option value="social">Social Media</option>
-                            <option value="highlight">Highlight</option>
-                        </select>
-                        <div className="form-actions">
-                            <button type="submit" className="save-button">
-                                Save Link
-                            </button>
-                            <button
-                                type="button"
-                                onClick={() => setIsAdding(false)}
-                                className="cancel-button"
+            {
+                isAdding ? (
+                    <form onSubmit={handleSaveLink} className="add-link-form" >
+                        <h3 className="form-title">{editingId ? 'Edit Link' : 'Add New Link'}</h3>
+                        <div className="form-group">
+                            <input
+                                type="text"
+                                placeholder="Button Text (e.g. Shop Peptides)"
+                                className="admin-input"
+                                value={newLink.text}
+                                onChange={(e) => setNewLink({ ...newLink, text: e.target.value })}
+                                required
+                                autoFocus
+                            />
+                            <input
+                                type="url"
+                                placeholder="URL (https://...)"
+                                className="admin-input"
+                                value={newLink.href}
+                                onChange={(e) => setNewLink({ ...newLink, href: e.target.value })}
+                                required
+                            />
+                            <input
+                                type="text"
+                                placeholder="Icon Emoji (e.g. 🛒)"
+                                className="admin-input"
+                                value={newLink.icon}
+                                onChange={(e) => setNewLink({ ...newLink, icon: e.target.value })}
+                            />
+                            <input
+                                type="text"
+                                placeholder="Subtext (Optional description)"
+                                className="admin-input"
+                                value={newLink.subtext}
+                                onChange={(e) => setNewLink({ ...newLink, subtext: e.target.value })}
+                            />
+                            <select
+                                className="admin-input"
+                                value={newLink.variant}
+                                onChange={(e) => setNewLink({ ...newLink, variant: e.target.value })}
                             >
-                                Cancel
-                            </button>
+                                <option value="generic">Generic Button</option>
+                                <option value="verified">Verified (Blue Check)</option>
+                                <option value="social">Social Media</option>
+                                <option value="highlight">Highlight</option>
+                            </select>
+                            <div className="form-actions">
+                                <button type="submit" className="save-button">
+                                    {editingId ? 'Update Link' : 'Save Link'}
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={handleCancelEdit}
+                                    className="cancel-button"
+                                >
+                                    Cancel
+                                </button>
+                            </div>
                         </div>
-                    </div>
-                </form>
-            ) : (
-                <button
-                    onClick={() => setIsAdding(true)}
-                    className="add-button-trigger"
-                >
-                    <Plus size={20} /> Add New Link
-                </button>
-            )}
+                    </form>
+                ) : (
+                    <button
+                        onClick={() => {
+                            setEditingId(null);
+                            setNewLink({ text: '', href: '', icon: '', subtext: '', variant: 'generic', active: true });
+                            setIsAdding(true);
+                        }}
+                        className="add-button-trigger"
+                    >
+                        <Plus size={20} /> Add New Link
+                    </button>
+                )}
         </div>
     );
 };
